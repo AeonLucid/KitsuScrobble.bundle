@@ -1,0 +1,15 @@
+[
+  {
+    "id": "username",
+    "type": "text",
+    "label": "Hummingbird Username",
+    "default": ""
+  },
+  {
+    "id": "password",
+    "type": "text",
+    "label": "Hummingbird Password",
+    "default": "",
+    "option": "hidden"
+  }
+]
