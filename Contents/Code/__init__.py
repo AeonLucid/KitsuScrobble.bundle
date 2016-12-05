@@ -7,3 +7,11 @@ def Start():
 
 def ValidatePrefs():
     Log.Info("[%s] Nothing to validate for HummingBirdScrobbler" % PLUGIN_NAME)
+
+
+####################################################################################################
+@handler('/video/hummingbirdscrobbler', PLUGIN_NAME)
+def MainMenu():
+    oc = ObjectContainer(no_cache=True)
+    oc.add(PrefsObject(title="Preferences"))
+    return oc
