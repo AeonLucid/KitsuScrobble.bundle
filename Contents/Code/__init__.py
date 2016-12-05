@@ -1,7 +1,9 @@
-PLUGIN_NAME = "HBScrobbler"
+PLUGIN_NAME = "KitsuScrobble"
 ROUTE_BASE = PLUGIN_NAME.lower()
 
-API_AUTHENTICATE_URL = "http://hummingbird.me/api/v1/users/authenticate"
+API_CLIENT_ID = "dd031b32d2f56c990b1425efe6c42ad847e7fe3ab46bf1299f05ecd856bdb7dd"  # Temporarily until Kitsu allows proper client registration
+API_CLIENT_SECRET = "54d7307928f63414defd96399fc31ba847961ceaecef3a5fd93144e960c0e151"  # Temporarily until Kitsu allows proper client registration
+API_AUTHENTICATE_URL = "https://staging.kitsu.io/api/oauth/token"
 
 ####################################################################################################
 def Start():
@@ -22,13 +24,17 @@ def ValidatePrefs():
 
 ####################################################################################################
 def Authenticate():
-    Log.Debug("Attempting HummingBird authentication.")
+    Log.Debug("Attempting Kitsu authentication.")
 
     if Prefs["username"] and Prefs["password"]:
         try:
+            # TODO Fix: <urlopen error [Errno 1] _ssl.c:504: error:14077438:SSL routines:SSL23_GET_SERVER_HELLO:tlsv1 alert internal error>
             authToken = JSON.ObjectFromURL(API_AUTHENTICATE_URL, values=dict(
+                grant_type="password",
                 username=Prefs["username"],
                 password=Prefs["password"]))
+
+            Log.Info("[%s] %s" % (PLUGIN_NAME, authToken))
 
             Dict["logged_in"] = True
             Dict["auth_token"] = authToken
@@ -38,9 +44,10 @@ def Authenticate():
             Dict["logged_in"] = False
             Log.Error("[%s] %s" % (PLUGIN_NAME, e.content))
             Log.Error("[%s] Authentication failed." % PLUGIN_NAME)
-        except:
+        except Exception, e:
             Dict["logged_in"] = False
-            Log.Error("[%s] Authentication failed." % PLUGIN_NAME)
+            Log.Error("[%s] %s" % (PLUGIN_NAME, e))
+            Log.Error("[%s] Authentication failed even more." % PLUGIN_NAME)
     return False
 
 
@@ -60,8 +67,12 @@ def MainMenu():
     )
 
 
+####################################################################################################
 @route("/video/%s/lookup-unmatched-anime" % ROUTE_BASE)
 def LookupUnmatchedAnime():
+    r = requests.get(API_AUTHENTICATE_URL)
+    Log.Debug(r.status_code)
+
     if not Dict["logged_in"]:
         return ObjectContainer(header="Login", message="Enter your username and password in the %s preferences" % PLUGIN_NAME)
 
