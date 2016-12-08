@@ -1,0 +1,4 @@
+pyOpenSSL==16.0.0
+cryptography==1.3.4
+idna==2.0
+requests==2.12.3

@@ -1,3 +1,6 @@
+import sys
+import requests
+
 PLUGIN_NAME = "KitsuScrobble"
 ROUTE_BASE = PLUGIN_NAME.lower()
 
@@ -8,11 +11,16 @@ API_AUTHENTICATE_URL = "https://staging.kitsu.io/api/oauth/token"
 ####################################################################################################
 def Start():
     Log.Info("[%s] Starting up." % PLUGIN_NAME)
+    Log.Info("[%s] Running on python '%s'." % (PLUGIN_NAME, sys.version))
 
+    # Just to test SSL connection.. Don't care about sending invalid data yet.
+    r = requests.post(API_AUTHENTICATE_URL, data=dict(grant_type="password"))
+    Log.Info("[%s] Authentication status code %d" % r.status_code)
+    
     # Clear user data
     Dict.Reset()
     # Authenticate user
-    Authenticate()
+    # Authenticate()
 
 
 ####################################################################################################
@@ -42,12 +50,12 @@ def Authenticate():
             return True
         except Ex.HTTPError, e:
             Dict["logged_in"] = False
-            Log.Error("[%s] %s" % (PLUGIN_NAME, e.content))
             Log.Error("[%s] Authentication failed." % PLUGIN_NAME)
+            Log.Error("[%s] %s" % (PLUGIN_NAME, e.content))
         except Exception, e:
             Dict["logged_in"] = False
-            Log.Error("[%s] %s" % (PLUGIN_NAME, e))
             Log.Error("[%s] Authentication failed even more." % PLUGIN_NAME)
+            Log.Error("[%s] %s" % (PLUGIN_NAME, e))
     return False
 
 
