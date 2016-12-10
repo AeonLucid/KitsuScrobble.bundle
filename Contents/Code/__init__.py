@@ -1,5 +1,4 @@
 import sys
-import requests
 
 PLUGIN_NAME = "KitsuScrobble"
 ROUTE_BASE = PLUGIN_NAME.lower()
@@ -12,15 +11,11 @@ API_AUTHENTICATE_URL = "https://staging.kitsu.io/api/oauth/token"
 def Start():
     Log.Info("[%s] Starting up." % PLUGIN_NAME)
     Log.Info("[%s] Running on python '%s'." % (PLUGIN_NAME, sys.version))
-
-    # Just to test SSL connection.. Don't care about sending invalid data yet.
-    r = requests.post(API_AUTHENTICATE_URL, data=dict(grant_type="password"))
-    Log.Info("[%s] Authentication status code %d" % r.status_code)
     
     # Clear user data
     Dict.Reset()
     # Authenticate user
-    # Authenticate()
+    Authenticate()
 
 
 ####################################################################################################
@@ -36,9 +31,10 @@ def Authenticate():
 
     if Prefs["username"] and Prefs["password"]:
         try:
-            # TODO Fix: <urlopen error [Errno 1] _ssl.c:504: error:14077438:SSL routines:SSL23_GET_SERVER_HELLO:tlsv1 alert internal error>
             authToken = JSON.ObjectFromURL(API_AUTHENTICATE_URL, values=dict(
                 grant_type="password",
+                client_id=API_CLIENT_ID,
+                client_secret=API_CLIENT_SECRET,
                 username=Prefs["username"],
                 password=Prefs["password"]))
 
