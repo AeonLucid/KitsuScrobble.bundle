@@ -1,20 +1,26 @@
 import sys
+import time
+from kitsu import KitsuApi
 
 PLUGIN_NAME = "KitsuScrobble"
 ROUTE_BASE = PLUGIN_NAME.lower()
 
-API_CLIENT_ID = "dd031b32d2f56c990b1425efe6c42ad847e7fe3ab46bf1299f05ecd856bdb7dd"  # Temporarily until Kitsu allows proper client registration
-API_CLIENT_SECRET = "54d7307928f63414defd96399fc31ba847961ceaecef3a5fd93144e960c0e151"  # Temporarily until Kitsu allows proper client registration
-API_AUTHENTICATE_URL = "https://staging.kitsu.io/api/oauth/token"
+REFRESH_TOKEN_OFFSET_SECONDS = 3600
+
+# Temporarily until Kitsu allows proper client registration
+Kitsu = KitsuApi("https://kitsu.io/api/edge",
+                 "https://kitsu.io/api/oauth",
+                 "dd031b32d2f56c990b1425efe6c42ad847e7fe3ab46bf1299f05ecd856bdb7dd",
+                 "54d7307928f63414defd96399fc31ba847961ceaecef3a5fd93144e960c0e151")
 
 ####################################################################################################
 def Start():
     Log.Info("[%s] Starting up." % PLUGIN_NAME)
     Log.Info("[%s] Running on python '%s'." % (PLUGIN_NAME, sys.version))
-    
-    # Clear user data
-    Dict.Reset()
-    # Authenticate user
+
+    # Make sure that the user is authenticated if previ
+    # ous credentials were known.
+    # If this is true, start the background process
     Authenticate()
 
 
@@ -22,36 +28,55 @@ def Start():
 def ValidatePrefs():
     Log.Info("[%s] Validating preferences." % PLUGIN_NAME)
 
-    return Authenticate()
+    # If this is true, start the background process if not yet started
+    # If this is false, stop the background process if it was started
+    return Authenticate(force_reauth=True)
 
 
 ####################################################################################################
-def Authenticate():
-    Log.Debug("Attempting Kitsu authentication.")
+def Authenticate(force_reauth=False):
+    Log.Debug("[%s] Attempting Kitsu authentication." % PLUGIN_NAME)
 
     if Prefs["username"] and Prefs["password"]:
         try:
-            authToken = JSON.ObjectFromURL(API_AUTHENTICATE_URL, values=dict(
-                grant_type="password",
-                client_id=API_CLIENT_ID,
-                client_secret=API_CLIENT_SECRET,
-                username=Prefs["username"],
-                password=Prefs["password"]))
+            # Was never logged in.
+            if force_reauth or "logged_in" in Dict and not Dict["logged_in"]:
+                Log.Debug("[%s] Attempting Kitsu authentication by using the username and password." % PLUGIN_NAME)
+                authData = Kitsu.authenticate(Prefs["username"], Prefs["password"])
+            # Access token expired.
+            elif "logged_in" in Dict and "auth_data" in Dict and Dict["logged_in"] \
+                    and Dict["auth_data"]["created_at"] + Dict["auth_data"]["expires_in"] - REFRESH_TOKEN_OFFSET_SECONDS <= time.time():
+                Log.Debug("[%s] Attempting Kitsu reauthentication by using the refresh token." % PLUGIN_NAME)
+                authData = Kitsu.authenticate_refresh(Dict["auth_data"]["refresh_token"])
+            # Already authenticated.
+            else:
+                Kitsu.set_token(Dict["auth_data"]["access_token"])
+                Log.Debug("[%s] User is already authenticated." % PLUGIN_NAME)
+                return True
 
-            Log.Info("[%s] %s" % (PLUGIN_NAME, authToken))
+            Kitsu.set_token(authData["access_token"])
+
+            userData = Kitsu.get_current_user()
 
             Dict["logged_in"] = True
-            Dict["auth_token"] = authToken
+            Dict["auth_data"] = authData
+            Dict["user_data"] = dict(
+                id=userData["data"][0]["id"],
+                name=userData["data"][0]["attributes"]["name"],
+            )
+
             Log.Info("[%s] Authentication was successful." % PLUGIN_NAME)
             return True
         except Ex.HTTPError, e:
-            Dict["logged_in"] = False
             Log.Error("[%s] Authentication failed." % PLUGIN_NAME)
             Log.Error("[%s] %s" % (PLUGIN_NAME, e.content))
         except Exception, e:
-            Dict["logged_in"] = False
             Log.Error("[%s] Authentication failed even more." % PLUGIN_NAME)
             Log.Error("[%s] %s" % (PLUGIN_NAME, e))
+
+        Dict["logged_in"] = False
+        Dict["auth_data"] = None
+        Dict["user_data"] = None
     return False
 
 
@@ -82,14 +107,14 @@ def LookupUnmatchedAnime():
 
     # response = JSON.ObjectFromURL(request_url)
     # collection = response["collection"]
-    
+
     # oc = ObjectContainer(title2 = "My Stream")
     # for activity in collection:
     #     origin = activity["origin"]
     #     if not origin["streamable"] or "stream_url" not in origin:
     #         continue
     #     AddTrack(oc, origin)
-    
+
     # if "next_href" in response:
     #     next_href = response["next_href"]
 
