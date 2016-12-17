@@ -1,3 +1,4 @@
+import urllib
 # Use boolean 'Dict["logged_in"]' to check if the user is currently signed into Kitsu.
 
 class KitsuApi:
@@ -44,6 +45,27 @@ class KitsuApi:
             Accept="application/vnd.api+json",
             Authorization="Bearer %s" % self.access_token
         ))
+
+    def lookup_anime(self, tvdb_season, title):
+        headers=dict(Accept="application/vnd.api+json")
+        matched = None
+        # Anime has a tvdb id
+        if tvdb_season:
+            mapping = JSON.ObjectFromURL("%s/mappings?filter[externalSite]=thetvdb/season&filter[externalId]=%s" % (self.api_url, tvdb_season), headers=headers)["data"][0]
+            # Mapping to tvdb exists in Kitsu database
+            if mapping:
+                matched = JSON.ObjectFromURL(mapping["relationships"]["media"]["links"]["related"], headers=headers)["data"]
+                # matched = JSON.ObjectFromURL("%s/anime/%s" % (self.api_url, mapping["id"]), headers=headers)["data"]
+        # Search by Anime title
+        results = JSON.ObjectFromURL("%s/anime?filter[text]=%s" % (self.api_url, urllib.quote(title)), headers=headers)["data"]
+        # Filter matched Anime from search results
+        if matched is not None:
+            for result in results:
+                if result["id"] == matched["id"]:
+                    results.remove(result)
+                    break
+            results = [matched] + results
+        return results
 
 class KitsuError(Exception):
     pass

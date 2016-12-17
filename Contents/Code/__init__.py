@@ -99,23 +99,20 @@ def MainMenu():
 ####################################################################################################
 @route("/video/%s/lookup-unmatched-anime" % ROUTE_BASE)
 def LookupUnmatchedAnime():
-    r = requests.get(API_AUTHENTICATE_URL)
-    Log.Debug(r.status_code)
+    # r = requests.get(API_AUTHENTICATE_URL)
+    # Log.Debug(r.status_code)
 
     if not Dict["logged_in"]:
         return ObjectContainer(header="Login", message="Enter your username and password in the %s preferences" % PLUGIN_NAME)
 
-    # response = JSON.ObjectFromURL(request_url)
-    # collection = response["collection"]
-
-    # oc = ObjectContainer(title2 = "My Stream")
-    # for activity in collection:
-    #     origin = activity["origin"]
-    #     if not origin["streamable"] or "stream_url" not in origin:
-    #         continue
-    #     AddTrack(oc, origin)
-
-    # if "next_href" in response:
-    #     next_href = response["next_href"]
+    # results = Kitsu.lookup_anime(None, 'Cowboy Bebop')
+    # for result in results:
+    #     Log.Info(result["attributes"]["canonicalTitle"])
+    # results = Kitsu.lookup_anime(31628, 'Code Geass: Lelouch of the Rebellion Season 2')
+    # for result in results:
+    #     Log.Info(result["attributes"]["canonicalTitle"])
+    # results = Kitsu.lookup_anime(17760, 'Code Geass: Lelouch of the Rebellion')
+    # for result in results:
+    #     Log.Info(result["attributes"]["canonicalTitle"])
 
     return ObjectContainer(header="Login Failed", message="Hello")
